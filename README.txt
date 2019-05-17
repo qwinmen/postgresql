@@ -1,1 +1,1 @@
-Go to wiki About page
+Go to wiki Home page
