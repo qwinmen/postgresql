@@ -28,3 +28,31 @@ BEGIN
  END;
 $changes$ LANGUAGE plpgsql
 ;
+;
+/*Пример триггера на таблицу "Organs".
+* Цель: изменять (увеличивать) значение поля ревизии при любом изменении данных в таблице.
+* Основа числа для ревизии - самовычисляемая последовательность (SEQUENCE).
+*/
+CREATE SEQUENCE IF NOT EXISTS public."Organs_Revision_Seq" MINVALUE 1
+;
+CREATE OR REPLACE FUNCTION Organs_ChangeRevision()
+RETURNS TRIGGER AS $changes$
+BEGIN
+    IF (TG_OP = 'UPDATE') THEN
+	    IF(OLD."Title" != NEW."Title" OR OLD."IsDeleted" != NEW."IsDeleted") THEN
+            NEW."Revision" := (SELECT nextval('public."Organs_Revision_Seq"'));
+        END IF;
+        RETURN NEW;
+    ELSIF (TG_OP = 'INSERT') THEN
+        NEW."Revision" := (SELECT nextval('public."Organs_Revision_Seq"'));
+        RETURN NEW;
+    END IF;
+RETURN NULL;
+END;
+$changes$ LANGUAGE plpgsql
+;
+CREATE TRIGGER "TR_Organs_ChangeRevision"
+	BEFORE INSERT OR UPDATE
+	 ON "Organs"
+	FOR EACH ROW EXECUTE PROCEDURE Organs_ChangeRevision()
+;
